@@ -48,7 +48,7 @@
 
 <script>
     // ============================================================
-    // 配置区域 - 只修改这两行
+    // ✏️ 只修改这两行
     // ============================================================
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBu-OgLZgei_VaCp9FaOf8fBvlsdCVyjXGB3J0BCAGdHTGwcaCmOe7ES3rO4o8vQAzEreYQJ-z4Vl7/pub?output=csv";
     const SUBMIT_PAGE_URL = "https://yz77-glitch.github.io/birthplace-map/submit.html";
@@ -85,16 +85,11 @@
     
     async function fetchData() {
         try {
-            // 添加时间戳强制刷新，完全禁用缓存
             const urlWithCacheBuster = CSV_URL + (CSV_URL.includes('?') ? '&' : '?') + 'nocache=' + Date.now();
             
+            // 简化请求 - 移除了不被 Google Sheets 允许的 headers
             const response = await fetch(urlWithCacheBuster, { 
-                cache: 'no-store',
-                headers: { 
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
+                cache: 'no-store'
             });
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -107,7 +102,6 @@
             
             const headers = parseCSVLine(lines[0]);
             
-            // 查找列索引
             let nameIdx = -1, cityIdx = -1, latIdx = -1, lngIdx = -1;
             
             headers.forEach((h, idx) => {
@@ -188,7 +182,6 @@
             lastDataHash = newHash;
             statusDiv.innerHTML = `✅ Updated: ${currentData.length} points | ${new Date().toLocaleTimeString()}`;
             
-            // 视觉反馈
             const mapEl = document.getElementById('map');
             mapEl.style.boxShadow = '0 0 20px #00d4ff';
             setTimeout(() => mapEl.style.boxShadow = '', 300);
@@ -217,7 +210,7 @@
     
     setupQR();
     refreshData();
-    setInterval(refreshData, 3000);  // 3秒刷新一次，比之前更快
+    setInterval(refreshData, 3000);
     document.getElementById('exportBtn').onclick = exportToExcel;
     document.getElementById('refreshBtn').onclick = refreshData;
 </script>
