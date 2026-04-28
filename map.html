@@ -3,93 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Birthplace Map · Real-time Display</title>
+    <title>Live Birthplace Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a1620;
-            color: #e0e0e0;
-        }
-        .app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        .map-wrapper {
-            flex: 3;
-            position: relative;
-            border-bottom: 3px solid #00d4ff;
-        }
-        #map {
-            height: 100%;
-            width: 100%;
-            background: #1a2a3a;
-        }
-        .panel {
-            flex: 1;
-            background: #0f1a24;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            overflow-y: auto;
-        }
-        @media (min-width: 900px) {
-            .app { flex-direction: row; }
-            .map-wrapper { flex: 3; border-bottom: none; border-right: 3px solid #00d4ff; }
-            .panel { flex: 1; min-width: 350px; }
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #1a2a3a 0%, #0f1a24 100%);
-            border-radius: 20px;
-            padding: 20px;
-            text-align: center;
-            border: 1px solid rgba(0, 212, 255, 0.3);
-        }
-        .stats-number {
-            font-size: 3.5rem;
-            font-weight: bold;
-            color: #00d4ff;
-            line-height: 1;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1620; color: #e0e0e0; }
+        .app { display: flex; flex-direction: column; height: 100vh; }
+        .map-wrapper { flex: 3; position: relative; border-bottom: 3px solid #00d4ff; }
+        #map { height: 100%; width: 100%; background: #1a2a3a; }
+        .panel { flex: 1; background: #0f1a24; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        @media (min-width: 900px) { .app { flex-direction: row; } .map-wrapper { flex: 3; border-bottom: none; border-right: 3px solid #00d4ff; } .panel { flex: 1; } }
+        .stats-card { background: linear-gradient(135deg, #1a2a3a 0%, #0f1a24 100%); border-radius: 20px; padding: 20px; text-align: center; border: 1px solid rgba(0,212,255,0.3); }
+        .stats-number { font-size: 3.5rem; font-weight: bold; color: #00d4ff; }
         .stats-label { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; color: #a0b0c0; }
-        .qr-card {
-            background: #16242e;
-            border-radius: 20px;
-            padding: 16px;
-            text-align: center;
-            border: 1px solid #2a3a48;
-        }
+        .qr-card { background: #16242e; border-radius: 20px; padding: 16px; text-align: center; border: 1px solid #2a3a48; }
         .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
-        button {
-            background: #00d4ff;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            flex: 1;
-            transition: all 0.2s;
-            color: #0a1620;
-        }
+        button { background: #00d4ff; border: none; padding: 12px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; flex: 1; transition: all 0.2s; color: #0a1620; }
         button:hover { background: #00e5ff; transform: translateY(-2px); }
         .btn-outline { background: transparent; border: 1px solid #00d4ff; color: #00d4ff; }
-        .btn-outline:hover { background: rgba(0, 212, 255, 0.1); }
-        .btn-warning { background: #ff6b4a; color: white; }
-        .recent-list {
-            background: #0a141c;
-            border-radius: 16px;
-            padding: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
+        .btn-outline:hover { background: rgba(0,212,255,0.1); }
+        .recent-list { background: #0a141c; border-radius: 16px; padding: 12px; max-height: 200px; overflow-y: auto; }
         .recent-item { padding: 8px; border-bottom: 1px solid #1e2e3a; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
         .status { font-size: 0.75rem; color: #00d4ff; text-align: center; padding: 8px; background: #0a141c; border-radius: 12px; }
+        .error-status { color: #ff6b4a; }
         h3 { font-size: 1rem; margin-bottom: 12px; color: #00d4ff; }
         .instructions { font-size: 0.8rem; background: #0a141c; padding: 12px; border-radius: 12px; line-height: 1.5; }
         a { color: #00d4ff; }
@@ -121,20 +59,22 @@
             3️⃣ Select from dropdown<br>
             4️⃣ Submit → Your pin appears in 5 seconds! ✨
         </div>
-        <div class="status" id="statusMsg">🟢 Live: Watching Google Sheets</div>
+        <div class="status" id="statusMsg">🟡 Initializing...</div>
     </div>
 </div>
 
 <script>
     // ============================================================
-    // CONFIGURATION - REPLACE WITH YOUR GOOGLE SHEET ID
+    // ✏️ 只修改这一行：粘贴你的 CSV 发布链接
     // ============================================================
-    const GOOGLE_SHEET_ID = "11LSErH8gNVOpCT52ncw7yTxbzLypB21qlw4wMliKHuY";  // <-- CHANGE THIS!
-    const SUBMIT_PAGE_URL = "https://yz77-glitch.github.io/birthplace-map/submit.html"; // URL where submit.html is hosted
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBu-OgLZgei_VaCp9FaOf8fBvlsdCVyjXGB3J0BCAGdHTGwcaCmOe7ES3rO4o8vQAzEreYQJ-z4Vl7/pub?output=csv";
     
-    // Fallback demo mode
-    const DEMO_MODE = (GOOGLE_SHEET_ID === "YOUR_SHEET_ID_HERE");
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=0`;
+    // 你的 submit.html 在线地址
+    const SUBMIT_PAGE_URL = "https://yz77-glitch.github.io/birthplace-map/submit.html";
+    // ============================================================
+    
+    // 检测是否配置了真实链接
+    const IS_CONFIGURED = CSV_URL && !CSV_URL.includes("YOUR_UNIQUE_ID");
     
     let map = L.map('map').setView([30.0, 100.0], 4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -145,55 +85,157 @@
     let currentData = [];
     let previousDataHash = "";
     
-    function hashData(data) { return JSON.stringify(data.map(d => d.name + d.lat + d.lng)); }
+    function getDataHash(data) {
+        return JSON.stringify(data.map(d => d.name + d.lat + d.lng));
+    }
+    
+    // 解析 CSV 行（处理引号和逗号）
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        
+        // 清理引号
+        return result.map(v => v.replace(/^"|"$/g, ''));
+    }
     
     async function fetchData() {
-        if (DEMO_MODE) return getDemoData();
+        if (!IS_CONFIGURED) {
+            console.warn("⚠️ 请先配置 CSV_URL");
+            document.getElementById('statusMsg').innerHTML = '⚠️ Please configure CSV_URL in the code (line ~70)';
+            return getDemoData();
+        }
+        
         try {
-            const response = await fetch(CSV_URL, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
-            if (!response.ok) throw new Error();
+            console.log("📡 Fetching from:", CSV_URL);
+            
+            // 直接 fetch（Google Sheets CORS 实际上允许）
+            const response = await fetch(CSV_URL, { 
+                cache: 'no-store',
+                headers: { 
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const csvText = await response.text();
-            const lines = csvText.split('\n').filter(l => l.trim());
-            if (lines.length < 2) return [];
-            const headers = lines[0].toLowerCase();
+            console.log("📄 CSV content length:", csvText.length, "chars");
+            
+            if (csvText.length < 20) {
+                console.warn("CSV content too short");
+                return [];
+            }
+            
+            // 显示前200字符用于调试
+            console.log("CSV preview:", csvText.substring(0, 200));
+            
+            // 按行分割
+            const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
+            console.log(`📊 Found ${lines.length} lines`);
+            
+            if (lines.length < 2) {
+                console.warn("Not enough lines");
+                return [];
+            }
+            
+            // 解析表头
+            const headers = parseCSVLine(lines[0]);
+            console.log("Headers:", headers);
+            
+            // 查找列索引（支持多种可能的列名）
+            let nameIdx = -1, cityIdx = -1, latIdx = -1, lngIdx = -1;
+            
+            headers.forEach((h, idx) => {
+                const lower = h.toLowerCase();
+                if (lower.includes('name')) nameIdx = idx;
+                if (lower.includes('city') || lower === 'birthplace') cityIdx = idx;
+                if (lower.includes('lat')) latIdx = idx;
+                if (lower.includes('lon') || lower.includes('lng') || lower === 'longitude') lngIdx = idx;
+            });
+            
+            // 如果没找到，按常见顺序假设：Timestamp, Name, City, Latitude, Longitude
+            if (nameIdx === -1) nameIdx = 1;
+            if (cityIdx === -1) cityIdx = 2;
+            if (latIdx === -1) latIdx = 3;
+            if (lngIdx === -1) lngIdx = 4;
+            
+            console.log(`Using indices - Name:${nameIdx}, City:${cityIdx}, Lat:${latIdx}, Lng:${lngIdx}`);
+            
             const data = [];
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.replace(/^"|"$/g, ''));
-                if (values.length >= 5 && values[1] && values[2] && values[3] && values[4]) {
-                    data.push({
-                        name: values[1],
-                        city: values[2],
-                        lat: parseFloat(values[3]),
-                        lng: parseFloat(values[4]),
-                        timestamp: Date.now() - (i * 1000)
-                    });
+                const values = parseCSVLine(lines[i]);
+                
+                if (values.length > Math.max(nameIdx, cityIdx, latIdx, lngIdx)) {
+                    const name = values[nameIdx];
+                    const city = values[cityIdx];
+                    const lat = parseFloat(values[latIdx]);
+                    const lng = parseFloat(values[lngIdx]);
+                    
+                    if (name && city && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                        data.push({
+                            name: name,
+                            city: city,
+                            lat: lat,
+                            lng: lng,
+                            timestamp: Date.now() - (i * 1000)
+                        });
+                    }
                 }
             }
+            
+            console.log(`✅ Successfully parsed ${data.length} records`);
             return data;
-        } catch(e) { return []; }
+            
+        } catch (error) {
+            console.error("❌ Fetch error:", error);
+            document.getElementById('statusMsg').innerHTML = `❌ Error: ${error.message}`;
+            document.getElementById('statusMsg').classList.add('error-status');
+            return [];
+        }
     }
     
     function getDemoData() {
         return [
-            { name: "Alex Chen", city: "Shanghai", lat: 31.2304, lng: 121.4737, timestamp: Date.now() - 3600000 },
-            { name: "Jamie Lin", city: "Chengdu", lat: 30.5728, lng: 104.0668, timestamp: Date.now() - 1800000 }
+            { name: "Test User 1", city: "Shanghai", lat: 31.2304, lng: 121.4737, timestamp: Date.now() - 3600000 },
+            { name: "Test User 2", city: "Chengdu", lat: 30.5728, lng: 104.0668, timestamp: Date.now() - 1800000 }
         ];
     }
     
     function renderMarkers(data) {
         markers.forEach(m => map.removeLayer(m));
         markers = [];
+        
         data.forEach(item => {
-            if (item.lat && item.lng) {
+            if (item.lat && item.lng && !isNaN(item.lat) && !isNaN(item.lng)) {
                 const marker = L.marker([item.lat, item.lng]).addTo(map);
                 marker.bindPopup(`<b>${escapeHtml(item.name)}</b><br>📍 ${escapeHtml(item.city)}`);
                 markers.push(marker);
             }
         });
+        
         document.getElementById('pinCount').innerText = data.length;
+        
         const recentDiv = document.getElementById('recentList');
-        if (data.length === 0) recentDiv.innerHTML = 'No participants yet. Be the first! ✨';
-        else {
+        if (data.length === 0) {
+            recentDiv.innerHTML = 'No participants yet. Be the first! ✨';
+        } else {
             let html = '';
             data.slice().reverse().slice(0, 15).forEach(p => {
                 html += `<div class="recent-item"><span>📍</span><span><strong>${escapeHtml(p.name)}</strong> from ${escapeHtml(p.city)}</span></div>`;
@@ -202,44 +244,82 @@
         }
     }
     
-    function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+    }
     
     async function refreshData() {
         const statusDiv = document.getElementById('statusMsg');
         statusDiv.innerHTML = '🔄 Fetching latest data...';
+        statusDiv.classList.remove('error-status');
+        
         const newData = await fetchData();
-        const newHash = hashData(newData);
+        const newHash = getDataHash(newData);
+        
         if (newHash !== previousDataHash) {
             currentData = newData;
             renderMarkers(currentData);
             previousDataHash = newHash;
-            statusDiv.innerHTML = `✅ Updated at ${new Date().toLocaleTimeString()} · ${currentData.length} points · Next in 5s`;
-            document.getElementById('map').style.boxShadow = '0 0 20px rgba(0,212,255,0.5)';
-            setTimeout(() => document.getElementById('map').style.boxShadow = 'none', 300);
+            const timeStr = new Date().toLocaleTimeString();
+            statusDiv.innerHTML = `✅ Updated at ${timeStr} · ${currentData.length} points · Next refresh in 5s`;
+            
+            // Visual flash effect
+            const mapEl = document.getElementById('map');
+            mapEl.style.transition = 'box-shadow 0.2s';
+            mapEl.style.boxShadow = '0 0 20px rgba(0,212,255,0.5)';
+            setTimeout(() => mapEl.style.boxShadow = 'none', 300);
         } else {
-            statusDiv.innerHTML = `🟢 ${currentData.length} points · Last check ${new Date().toLocaleTimeString()} · Next in 5s`;
+            const timeStr = new Date().toLocaleTimeString();
+            statusDiv.innerHTML = `🟢 ${currentData.length} points · Last check ${timeStr} · Next in 5s`;
         }
     }
     
     function exportToExcel() {
-        if (currentData.length === 0) { alert('No data to export'); return; }
-        const ws = XLSX.utils.json_to_sheet(currentData.map(p => ({ Name: p.name, City: p.city, Latitude: p.lat, Longitude: p.lng, Timestamp: new Date(p.timestamp).toLocaleString() })));
+        if (currentData.length === 0) {
+            alert('No data to export yet!');
+            return;
+        }
+        
+        const exportData = currentData.map(p => ({
+            'Name': p.name,
+            'Birthplace City': p.city,
+            'Latitude': p.lat,
+            'Longitude': p.lng,
+            'Timestamp': new Date(p.timestamp).toLocaleString()
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Birthplace Data');
         XLSX.writeFile(wb, `birthplace_${new Date().toISOString().slice(0,19)}.xlsx`);
     }
     
     function setupQR() {
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(SUBMIT_PAGE_URL)}`;
-        document.getElementById('qrCodeContainer').innerHTML = `<img src="${qrUrl}" width="100" height="100" style="border-radius:12px;">`;
-        document.getElementById('formLinkDisplay').innerHTML = `<a href="${SUBMIT_PAGE_URL}" target="_blank" style="color:#00d4ff;">📝 Open Form to Submit</a>`;
+        if (SUBMIT_PAGE_URL && !SUBMIT_PAGE_URL.includes("YOUR_SUBMIT_PAGE_URL")) {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(SUBMIT_PAGE_URL)}`;
+            document.getElementById('qrCodeContainer').innerHTML = `<img src="${qrUrl}" width="100" height="100" style="border-radius:12px;">`;
+            document.getElementById('formLinkDisplay').innerHTML = `<a href="${SUBMIT_PAGE_URL}" target="_blank" style="color:#00d4ff;">📝 Open Form to Submit</a>`;
+        } else {
+            document.getElementById('qrCodeContainer').innerHTML = '⚠️ Set SUBMIT_PAGE_URL';
+            document.getElementById('formLinkDisplay').innerHTML = 'Edit SUBMIT_PAGE_URL in code';
+        }
     }
     
+    // Initialize
     setupQR();
     refreshData();
     setInterval(refreshData, 5000);
     document.getElementById('exportBtn').onclick = exportToExcel;
     document.getElementById('refreshBtn').onclick = refreshData;
+    
+    // Log status to console
+    if (!IS_CONFIGURED) {
+        console.log("=".repeat(50));
+        console.log("⚠️ CONFIGURATION NEEDED");
+        console.log("Please replace CSV_URL with your published Google Sheets CSV link");
+        console.log("Get it from: File → Share → Publish to web → CSV");
+        console.log("=".repeat(50));
+    }
 </script>
 </body>
 </html>
